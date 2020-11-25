@@ -169,16 +169,19 @@ namespace MockableStaticGenerator
                         var sigWithConstraint = (sig + (string.IsNullOrEmpty(constraints.ToString()) ? "" : " where " + constraints.ToString())).Trim();
                         var returnKeyword = m.IsReturnsVoid ? "" : "return ";
 
-                        sbInterface.AppendLine($"\t\t{sigWithConstraint};");
+                        if (!sbInterface.ToString().Contains(sigWithConstraint))
+                            sbInterface.AppendLine($"\t\t{sigWithConstraint};");
 
-                        if (!string.IsNullOrEmpty(m.ObsoleteInfo))
+                        if (!sbClassWapper.ToString().Contains(sigWithConstraint))
                         {
-                            sbClassWapper.AppendLine($"\t\t[{m.ObsoleteInfo}]");
+                            if (!string.IsNullOrEmpty(m.ObsoleteInfo))
+                            {
+                                sbClassWapper.AppendLine($"\t\t[{m.ObsoleteInfo}]");
+                            }
+                            sbClassWapper.AppendLine($"\t\tpublic {sigWithConstraint} {{");
+                            sbClassWapper.AppendLine($"\t\t\t{returnKeyword}{m.ClassNameWithNamespace}.{m.Name}{tp}({pv});");
+                            sbClassWapper.AppendLine($"\t\t}}");
                         }
-                        sbClassWapper.AppendLine($"\t\tpublic {sigWithConstraint} {{");
-                        sbClassWapper.AppendLine($"\t\t\t{returnKeyword}{m.ClassNameWithNamespace}.{m.Name}{tp}({pv});");
-                        sbClassWapper.AppendLine($"\t\t}}");
-
                     }
 
                     sbInterface.AppendLine($"\t}}");

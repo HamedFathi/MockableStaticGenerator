@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <Version>0.0.2</Version>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Hamed Fathi</Authors>
     <Description>A C# source generator to help developers to write interface and class wrappers for whole static methods of an assembly for mocking easier.</Description>
     <Company>N/A</Company>
@@ -14,16 +13,18 @@
     <PackageTags>dotnet</PackageTags>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <GenerateRepositoryUrlAttribute>true</GenerateRepositoryUrlAttribute>
-    <PackBuildOutput>true</PackBuildOutput>
     <PackageId>MockableStaticGenerator</PackageId>
-    <PackOnBuild>true</PackOnBuild>
-    <PackFolder>analyzers\cs</PackFolder>
-    <DebugType>embedded</DebugType>
-    <DebugSymbols>true</DebugSymbols>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+  <PropertyGroup>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
   </PropertyGroup>
   <PropertyGroup>
     <RestoreAdditionalProjectSources>https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet5/nuget/v3/index.json ;$(RestoreAdditionalProjectSources)</RestoreAdditionalProjectSources>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.8.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.1">
