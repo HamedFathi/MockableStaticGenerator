@@ -1,5 +1,4 @@
-﻿using CodeGen;
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System;
@@ -10,7 +9,7 @@ using System.Text;
 namespace MockableStaticGenerator
 {
     [Generator]
-    public class MockableGenerator : ISourceGenerator
+    public class MockStaticGenerator : ISourceGenerator
     {
         private static readonly List<StaticMethodInfo> _methodInfos = new List<StaticMethodInfo>();
         public class MethodSymbolVisitor : SymbolVisitor
