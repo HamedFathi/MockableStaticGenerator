@@ -12,6 +12,20 @@ namespace MockableStaticGenerator
     public class MockStaticGenerator : ISourceGenerator
     {
         private static readonly List<StaticMethodInfo> _methodInfos = new List<StaticMethodInfo>();
+        private static string getRefKind(RefKind refKind)
+        {
+            switch (refKind)
+            {
+                case RefKind.Ref:
+                    return "ref";
+                case RefKind.Out:
+                    return "out";
+                case RefKind.In:
+                    return "in";
+                default:
+                    return "";
+            }
+        }
         public class MethodSymbolVisitor : SymbolVisitor
         {
             public override void VisitNamespace(INamespaceSymbol symbol)
@@ -27,21 +41,6 @@ namespace MockableStaticGenerator
                 foreach (var child in symbol.GetMembers())
                 {
                     child.Accept(this);
-                }
-            }
-
-            private string getRefKind(RefKind refKind)
-            {
-                switch (refKind)
-                {
-                    case RefKind.Ref:
-                        return "ref";
-                    case RefKind.Out:
-                        return "out";
-                    case RefKind.In:
-                        return "in";
-                    default:
-                        return "";
                 }
             }
 
@@ -105,6 +104,9 @@ namespace MockableStaticGenerator
                 public MockableStaticAttribute(Type type)
                 {
                 }
+                public MockableStaticAttribute()
+                {
+                }
             }
         }"
         ;
@@ -128,58 +130,69 @@ namespace MockableStaticGenerator
                 SemanticModel model = compilation.GetSemanticModel(cls.SyntaxTree);
                 var clsSymbol = model.GetDeclaredSymbol(cls);
                 var attr = clsSymbol.GetAttributes().FirstOrDefault(ad => ad.AttributeClass.Equals(attributeSymbol, SymbolEqualityComparer.Default));
+
                 if (attr == null) return;
-                assemblyName = ((INamedTypeSymbol)attr?.ConstructorArguments[0].Value).ContainingAssembly.Identity.Name;
-                var assemblySymbol = ((INamedTypeSymbol)attr?.ConstructorArguments[0].Value).ContainingAssembly.GlobalNamespace;
 
-                visitor.Visit(assemblySymbol);
+                var isCtorParamless = attr?.ConstructorArguments.Length == 0;
 
-                var sbInterface = new StringBuilder();
-                var sbClassWapper = new StringBuilder();
-                var sources = new List<string>();
-
-                foreach (var item in _methodInfos.GroupBy(x => x.ClassName))
+                if (isCtorParamless)
                 {
+                    var sbInterface = new StringBuilder();
+                    var sbClassWapper = new StringBuilder();
+                    var sources = new List<string>();
+
+                    // TODO: Class with constraints
+                    // public class Sample<T,U,V> where U : class, new() {}
+                    /*
+                    if (((INamedTypeSymbol)ta.co != null)
+                    {
+                        constraints.AppendLine($"{tpc.Name}: {tpc.Constraints.Aggregate((a, b) => a + ", " + b)}");
+                    }
+                    */
+
                     sbInterface.Clear();
                     sbClassWapper.Clear();
-
-                    var className = item.Key;
+                    var className = clsSymbol.Name;
+                    var classNameWithNamespace = clsSymbol.ContainingNamespace == null ? "" : $"{clsSymbol.ContainingNamespace}.{className}";
+                    assemblyName = clsSymbol.ContainingAssembly.Identity.Name;
 
                     var fileName = !className.Contains('<') ? className + "Wrapper" : className.Replace("<", "Wrapper<");
+                    var methods = clsSymbol.GetMembers().Where(x => x.IsStatic && string.Equals(x.DeclaredAccessibility.ToString(), "public", StringComparison.InvariantCultureIgnoreCase));
                     sbInterface.AppendLine($"\tpublic interface I{fileName} {{");
                     sbClassWapper.AppendLine($"\tpublic partial class {fileName} : I{fileName} {{");
-
-                    foreach (var m in item)
+                    foreach (IMethodSymbol m in methods)
                     {
-                        var tp = m.TypeParameters == null ? "" : "<" + m.TypeParameters.Select(x => x.Name).Aggregate((a, b) => a + ", " + b) + ">";
-                        var p = m.Parameters == null ? "" : m.Parameters.Select(x => x.Type + " " + x.Name).Aggregate((a, b) => a + ", " + b);
-                        var pv = m.Parameters == null ? "" : m.Parameters.Select(x => (x.RefKind + " " + x.Name).Trim()).Aggregate((a, b) => a + ", " + b);
+
+                        var tp = m.TypeParameters.Length == 0 ? "" : "<" + m.TypeParameters.Select(x => x.Name).Aggregate((a, b) => a + ", " + b) + ">";
+                        var p = m.Parameters.Length == 0 ? "" : m.Parameters.Select(x => x.Type + " " + x.Name).Aggregate((a, b) => a + ", " + b);
+                        var pv = m.Parameters.Length == 0 ? "" : m.Parameters.Select(x => (getRefKind(x.RefKind) + " " + x.Name).Trim()).Aggregate((a, b) => a + ", " + b);
                         var constraints = new StringBuilder();
-                        if (m.TypeParameters != null)
+                        if (m.TypeParameters.Length != 0)
                         {
                             foreach (var tpc in m.TypeParameters)
                             {
-                                if (tpc.Constraints != null)
+                                if (tpc.ConstraintTypes.Length != 0)
                                 {
-                                    constraints.AppendLine($"{tpc.Name}: {tpc.Constraints.Aggregate((a, b) => a + ", " + b)}");
+                                    constraints.AppendLine($"{tpc.Name}: {tpc.ConstraintTypes.Select(x => x.Name).Aggregate((a, b) => a + ", " + b)}");
                                 }
                             }
                         }
                         var sig = $"{m.ReturnType} {m.Name}{tp}({p})";
                         var sigWithConstraint = (sig + (string.IsNullOrEmpty(constraints.ToString()) ? "" : " where " + constraints.ToString())).Trim();
-                        var returnKeyword = m.IsReturnsVoid ? "" : "return ";
+                        var returnKeyword = m.ReturnsVoid ? "" : "return ";
 
                         if (!sbInterface.ToString().Contains(sigWithConstraint))
                             sbInterface.AppendLine($"\t\t{sigWithConstraint};");
 
                         if (!sbClassWapper.ToString().Contains(sigWithConstraint))
                         {
-                            if (!string.IsNullOrEmpty(m.ObsoleteInfo))
+                            var obsolete = m.GetAttributes().FirstOrDefault(x => x.ToString().StartsWith("System.ObsoleteAttribute("))?.ToString();
+                            if (!string.IsNullOrEmpty(obsolete))
                             {
-                                sbClassWapper.AppendLine($"\t\t[{m.ObsoleteInfo}]");
+                                sbClassWapper.AppendLine($"\t\t[{obsolete}]");
                             }
                             sbClassWapper.AppendLine($"\t\tpublic {sigWithConstraint} {{");
-                            sbClassWapper.AppendLine($"\t\t\t{returnKeyword}{m.ClassNameWithNamespace}.{m.Name}{tp}({pv});");
+                            sbClassWapper.AppendLine($"\t\t\t{returnKeyword}{classNameWithNamespace}.{m.Name}{tp}({pv});");
                             sbClassWapper.AppendLine($"\t\t}}");
                         }
                     }
@@ -190,18 +203,89 @@ namespace MockableStaticGenerator
                     var classWrapper = sbClassWapper.ToString();
                     sources.Add(interfaceWrapper);
                     sources.Add(classWrapper);
+
+                    var ns = new StringBuilder();
+                    ns.AppendLine($"namespace {assemblyName}.MockableGenerated {{");
+                    ns.AppendLine(sources.Aggregate((a, b) => a + Environment.NewLine + b));
+                    ns.AppendLine("}");
+
+                    var src = ns.ToString();
+
+                    context.AddSource($"{assemblyName}MockableGenerated", SourceText.From(src, Encoding.UTF8));
                 }
+                else
+                {
+                    var sbInterface = new StringBuilder();
+                    var sbClassWapper = new StringBuilder();
+                    var sources = new List<string>();
+                    assemblyName = ((INamedTypeSymbol)attr?.ConstructorArguments[0].Value).ContainingAssembly.Identity.Name;
+                    var assemblySymbol = ((INamedTypeSymbol)attr?.ConstructorArguments[0].Value).ContainingAssembly.GlobalNamespace;
 
+                    visitor.Visit(assemblySymbol);
 
-                var ns = new StringBuilder();
-                ns.AppendLine($"namespace {assemblyName}.MockableGenerated {{");
-                ns.AppendLine(sources.Aggregate((a, b) => a + Environment.NewLine + b));
-                ns.AppendLine("}");
+                    foreach (var item in _methodInfos.GroupBy(x => x.ClassName))
+                    {
+                        sbInterface.Clear();
+                        sbClassWapper.Clear();
 
-                var src = ns.ToString();
+                        var className = item.Key;
 
-                context.AddSource($"{assemblyName}MockableGenerated", SourceText.From(src, Encoding.UTF8));
+                        var fileName = !className.Contains('<') ? className + "Wrapper" : className.Replace("<", "Wrapper<");
+                        sbInterface.AppendLine($"\tpublic interface I{fileName} {{");
+                        sbClassWapper.AppendLine($"\tpublic partial class {fileName} : I{fileName} {{");
 
+                        foreach (var m in item)
+                        {
+                            var tp = m.TypeParameters == null ? "" : "<" + m.TypeParameters.Select(x => x.Name).Aggregate((a, b) => a + ", " + b) + ">";
+                            var p = m.Parameters == null ? "" : m.Parameters.Select(x => x.Type + " " + x.Name).Aggregate((a, b) => a + ", " + b);
+                            var pv = m.Parameters == null ? "" : m.Parameters.Select(x => (x.RefKind + " " + x.Name).Trim()).Aggregate((a, b) => a + ", " + b);
+                            var constraints = new StringBuilder();
+                            if (m.TypeParameters != null)
+                            {
+                                foreach (var tpc in m.TypeParameters)
+                                {
+                                    if (tpc.Constraints != null)
+                                    {
+                                        constraints.AppendLine($"{tpc.Name}: {tpc.Constraints.Aggregate((a, b) => a + ", " + b)}");
+                                    }
+                                }
+                            }
+                            var sig = $"{m.ReturnType} {m.Name}{tp}({p})";
+                            var sigWithConstraint = (sig + (string.IsNullOrEmpty(constraints.ToString()) ? "" : " where " + constraints.ToString())).Trim();
+                            var returnKeyword = m.IsReturnsVoid ? "" : "return ";
+
+                            if (!sbInterface.ToString().Contains(sigWithConstraint))
+                                sbInterface.AppendLine($"\t\t{sigWithConstraint};");
+
+                            if (!sbClassWapper.ToString().Contains(sigWithConstraint))
+                            {
+                                if (!string.IsNullOrEmpty(m.ObsoleteInfo))
+                                {
+                                    sbClassWapper.AppendLine($"\t\t[{m.ObsoleteInfo}]");
+                                }
+                                sbClassWapper.AppendLine($"\t\tpublic {sigWithConstraint} {{");
+                                sbClassWapper.AppendLine($"\t\t\t{returnKeyword}{m.ClassNameWithNamespace}.{m.Name}{tp}({pv});");
+                                sbClassWapper.AppendLine($"\t\t}}");
+                            }
+                        }
+
+                        sbInterface.AppendLine($"\t}}");
+                        sbClassWapper.AppendLine($"\t}}");
+                        var interfaceWrapper = sbInterface.ToString();
+                        var classWrapper = sbClassWapper.ToString();
+                        sources.Add(interfaceWrapper);
+                        sources.Add(classWrapper);
+                    }
+
+                    var ns = new StringBuilder();
+                    ns.AppendLine($"namespace {assemblyName}.MockableGenerated {{");
+                    ns.AppendLine(sources.Aggregate((a, b) => a + Environment.NewLine + b));
+                    ns.AppendLine("}");
+
+                    var src = ns.ToString();
+
+                    context.AddSource($"{assemblyName}MockableGenerated", SourceText.From(src, Encoding.UTF8));
+                }
             }
         }
 

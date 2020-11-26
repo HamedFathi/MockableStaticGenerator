@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>0.0.2</Version>
+    <Version>0.0.3</Version>
     <Authors>Hamed Fathi</Authors>
     <Description>A C# source generator to help developers to write interface and class wrappers for whole static methods of an assembly for mocking easier.</Description>
     <Company>N/A</Company>
