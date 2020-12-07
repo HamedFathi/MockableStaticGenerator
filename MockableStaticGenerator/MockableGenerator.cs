@@ -101,7 +101,6 @@ namespace MockableStaticGenerator
 
             var sources = new StringBuilder();
             var assemblyName = "";
-            var className = "";
             foreach (var cls in receiver.Classes)
             {
                 SemanticModel model = compilation.GetSemanticModel(cls.SyntaxTree);
@@ -120,7 +119,7 @@ namespace MockableStaticGenerator
                     var methods = cls.DescendantNodes().OfType<MethodDeclarationSyntax>().Where(x => x.IsPublic() && x.IsStatic()).ToList();
                     if (methods.Count == 0) continue;
 
-                    className = clsSymbol.Name;
+                    var className = clsSymbol.Name;
                     var ns = string.IsNullOrEmpty(cls.GetNamespace()) ? "" : cls.GetNamespace() + ".";
                     var baseList = string.IsNullOrEmpty(cls.BaseList?.ToFullString()) ? ":" : cls.BaseList?.ToFullString().Trim() + ",";
                     assemblyName = clsSymbol.ContainingAssembly.Identity.Name;
@@ -159,8 +158,6 @@ namespace MockableStaticGenerator
                     var ctor = ((INamedTypeSymbol)attr?.ConstructorArguments[0].Value);
                     var assemblySymbol = ctor.ContainingAssembly.GlobalNamespace;
                     assemblyName = ctor.ContainingAssembly.Identity.Name;
-                    className = ctor.ToDisplayString().Split('.').LastOrDefault();
-                    if (className == null) continue;
                     var visitor = new MethodSymbolVisitor(ctor.ToDisplayString());
                     visitor.Visit(assemblySymbol);
                     sbInterface.AppendLine(_interfaces.Aggregate((a, b) => a + Environment.NewLine + b) + Environment.NewLine + "\t}");
@@ -172,25 +169,25 @@ namespace MockableStaticGenerator
 
                 sources.AppendLine(interfaceWrapper);
                 sources.AppendLine(classWrapper);
-
-                var defaultUsings = new StringBuilder();
-                defaultUsings.AppendLine("using System;");
-                defaultUsings.AppendLine("using System.Collections.Generic;");
-                defaultUsings.AppendLine("using System.Linq;");
-                defaultUsings.AppendLine("using System.Text;");
-                defaultUsings.AppendLine("using System.Threading.Tasks;");
-                var usings = defaultUsings.ToString();
-
-                var src = sources.ToString();
-                var @namespace = new StringBuilder();
-                @namespace.AppendLine(usings);
-                @namespace.AppendLine($"namespace {assemblyName}.MockableGenerated {{");
-                @namespace.AppendLine(src);
-                @namespace.Append("}");
-                var result = @namespace.ToString();
-
-                context.AddSource($"{assemblyName}{className}MockableGenerated", SourceText.From(result, Encoding.UTF8));
             }
+
+            var defaultUsings = new StringBuilder();
+            defaultUsings.AppendLine("using System;");
+            defaultUsings.AppendLine("using System.Collections.Generic;");
+            defaultUsings.AppendLine("using System.Linq;");
+            defaultUsings.AppendLine("using System.Text;");
+            defaultUsings.AppendLine("using System.Threading.Tasks;");
+            var usings = defaultUsings.ToString();
+
+            var src = sources.ToString();
+            var @namespace = new StringBuilder();
+            @namespace.AppendLine(usings);
+            @namespace.AppendLine($"namespace {assemblyName}.MockableGenerated {{");
+            @namespace.AppendLine(src);
+            @namespace.Append("}");
+            var result = @namespace.ToString();
+
+            context.AddSource($"{assemblyName}MockableGenerated", SourceText.From(result, Encoding.UTF8));
         }
 
         public void Initialize(GeneratorInitializationContext context)
