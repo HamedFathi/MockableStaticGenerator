@@ -1,8 +1,8 @@
 # MockableStaticGenerator
 
 ```cs
-// For whole classes of an external assembly with a lot of static methods, like Dapper.
-[MockableStatic(typeof(Dapper.DynamicParameters))]
+// For type of an external assembly with a lot of static methods, like Dapper.
+[MockableStatic(typeof(Dapper.SqlMapper))]
 public class StudentRepositoryTest
 {
     [Fact]
