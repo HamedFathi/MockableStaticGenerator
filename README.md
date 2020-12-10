@@ -25,3 +25,5 @@ public class Math
     public static int Sub(int a, int b) { return a+b; }
 }
 ```
+
+For more information read [this blog post](https://hamedfathi.me/the-dotnet-world-csharp-source-generator/).
