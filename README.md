@@ -26,4 +26,11 @@ public class Math
 }
 ```
 
+### [Nuget](https://www.nuget.org/packages/MockableStaticGenerator)
+
+```
+Install-Package MockableStaticGenerator
+dotnet add package MockableStaticGenerator
+```
+
 For more information read [this blog post](https://hamedfathi.me/the-dotnet-world-csharp-source-generator/).
