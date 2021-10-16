@@ -72,7 +72,7 @@ mock.VerifyAll();
 
 #### What is the wrong part with this solution?
 
-Of course, you can not do this for all static methods or for all external libraries. It is hard and tedious work.
+Of course, you can not do this for all static methods or for all external libraries. It is hard and tedious work. Maybe sometimes impossible!
 
 ## MockableStaticGenerator
 
