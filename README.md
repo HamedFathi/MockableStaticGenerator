@@ -117,7 +117,7 @@ public class StudentRepositoryTest
 }
  ```
  
-#### How to call generated the classes and interfaces?
+#### How to call the generated interfaces and classes?
 
 There are two naming convention you should follow:
 
