@@ -123,10 +123,11 @@ There are two naming convention you should follow:
 * `I{CLASS_NAME}Wrapper` for the interface
 * `{CLASS_NAME}Wrapper` for the class
 
-and you can find them under 
+and you can find them under this namespace.
 
-* `{ASSEMBLY_NAME}.MockableGenerated.I{CLASS_NAME}Wrapper`
-* `{ASSEMBLY_NAME}.MockableGenerated.{CLASS_NAME}Wrapper`
+* namespace `{ASSEMBLY_NAME}.MockableGenerated`
+    * `{ASSEMBLY_NAME}.MockableGenerated.I{CLASS_NAME}Wrapper`
+    * `{ASSEMBLY_NAME}.MockableGenerated.{CLASS_NAME}Wrapper`
 
 
 ![image](https://user-images.githubusercontent.com/8418700/108617117-04539600-7429-11eb-804a-7c6e3241a799.png)
