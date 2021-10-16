@@ -78,7 +78,7 @@ Of course, you can not do this for all static methods or for all external librar
 
 `MockableStaticGenerator` is a C# code generator for making your static/extension methods even from an external library mockable just like above approach but automatically!
 
-## How it works?
+#### How it works?
 
 * For internal usage
 
@@ -136,7 +136,7 @@ and you can find them under
 
 You **must** use the generated interfaces and classes **instead of** the originals to make your library, application testable and mockable.
 
-## [Nuget](https://www.nuget.org/packages/MockableStaticGenerator)
+#### [Nuget](https://www.nuget.org/packages/MockableStaticGenerator)
 
 ```
 Install-Package MockableStaticGenerator
