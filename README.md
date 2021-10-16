@@ -99,7 +99,7 @@ public class Math
 If you have a class with static methods inside it but from somewhere else (an external library for example), you should introduce type of that class to the `[MockableStatic]`
  
  ```cs
- // For type of an external assembly with a lot of static methods, like 'Dapper.SqlMapper' class.
+ // For type of an external assembly with a lot of static methods, like 'Dapper.SqlMapper' class in Dapper external library.
 [MockableStatic(typeof(Dapper.SqlMapper))]
 public class StudentRepositoryTest
 {
