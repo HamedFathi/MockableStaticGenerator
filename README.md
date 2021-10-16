@@ -119,7 +119,7 @@ public class StudentRepositoryTest
  
 #### How to call the generated interfaces and classes?
 
-There are two naming convention you should follow:
+There are two naming conventions you should follow:
 
 * `I{CLASS_NAME}Wrapper` for the interface
 * `{CLASS_NAME}Wrapper` for the class
