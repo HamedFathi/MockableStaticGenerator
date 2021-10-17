@@ -101,18 +101,13 @@ If you have a class with static methods inside it but from somewhere else (an ex
  ```cs
  // For type of an external assembly with a lot of static methods
  // like 'Dapper.SqlMapper' class in Dapper external library.
+ // It does not matter top of what class it is, but Program's class can be appropriate.
 [MockableStatic(typeof(Dapper.SqlMapper))]
-public class StudentRepositoryTest
+class Program
 {
-    [Fact]
-    public void StudentRepositoryMoqObject()
+    static void Main(string[] args)
     {
-        // Dapper.MockableGenerated.ISqlMapperWrapper
-
-        var mockConn = new Mock<IDbConnection>();
-        var sut = new StudentRepository(mockConn.Object);
-        var stu = sut.GetStudents();
-
+        // ...
     }
 }
  ```
