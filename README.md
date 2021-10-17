@@ -101,7 +101,7 @@ If you have a class with static methods inside it but from somewhere else (an ex
  ```cs
  // For type of an external assembly with a lot of static methods
  // like 'Dapper.SqlMapper' class in Dapper external library.
- // It does not matter top of what class it is, but Program's class can be appropriate.
+ // It does not matter on top of what class it is, but Program class can be appropriate.
 [MockableStatic(typeof(Dapper.SqlMapper))]
 class Program
 {
