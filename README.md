@@ -1,3 +1,5 @@
+![encode](https://user-images.githubusercontent.com/8418700/140723471-a3529ea9-db8f-465e-9eaa-64e16fbb950f.png)
+
 ## Problem
 
 I want to mock static or extensions methods. What should I do?
@@ -141,3 +143,7 @@ dotnet add package MockableStaticGenerator
 ```
 
 For more details read [this blog post](https://hamedfathi.me/the-dotnet-world-csharp-source-generator/).
+
+<hr/>
+
+<div>Icons made by <a href="https://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
