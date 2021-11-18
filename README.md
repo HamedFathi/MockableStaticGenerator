@@ -133,7 +133,7 @@ and you can find them under this namespace.
 
 #### Attention
 
-You **must** use the generated interfaces and classes **instead of** the originals to make your library, application testable and mockable.
+You **must** use the generated interfaces and classes **instead of** the originals to make your library/application testable and mockable.
 
 <hr/>
 
