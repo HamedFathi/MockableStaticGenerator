@@ -139,6 +139,10 @@ You **must** use the generated interfaces and classes **instead of** the origina
 
 #### [Nuget](https://www.nuget.org/packages/MockableStaticGenerator)
 
+[![Open Source Love](https://badges.frapsoft.com/os/mit/mit.svg?v=102)](https://opensource.org/licenses/MIT)
+![Nuget](https://img.shields.io/nuget/v/MockableStaticGenerator)
+![Nuget](https://img.shields.io/nuget/dt/MockableStaticGenerator)
+
 ```
 Install-Package MockableStaticGenerator
 dotnet add package MockableStaticGenerator
