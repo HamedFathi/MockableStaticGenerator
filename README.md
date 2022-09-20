@@ -123,9 +123,9 @@ There are two naming conventions you should follow:
 
 and you can find them under this namespace.
 
-* namespace `{ASSEMBLY_NAME}.MockableGenerated`
-    * `{ASSEMBLY_NAME}.MockableGenerated.I{CLASS_NAME}Wrapper`
-    * `{ASSEMBLY_NAME}.MockableGenerated.{CLASS_NAME}Wrapper`
+* namespace `MockableGenerated`
+    * `MockableGenerated.I{CLASS_NAME}Wrapper`
+    * `MockableGenerated.{CLASS_NAME}Wrapper`
 
 
 ![image](https://user-images.githubusercontent.com/8418700/108617117-04539600-7429-11eb-804a-7c6e3241a799.png)

@@ -41,8 +41,8 @@ namespace MockableStaticGenerator
             public override void VisitMethod(IMethodSymbol symbol)
             {
                 var cls = symbol.ReceiverType;
-                var isClass = symbol.ReceiverType.TypeKind == TypeKind.Class;
-                var isPublic = string.Equals(symbol.ReceiverType.DeclaredAccessibility.ToString().ToLowerInvariant(), "public", StringComparison.InvariantCultureIgnoreCase);
+                var isClass = symbol.ReceiverType != null && symbol.ReceiverType.TypeKind == TypeKind.Class;
+                var isPublic = symbol.ReceiverType != null && string.Equals(symbol.ReceiverType.DeclaredAccessibility.ToString().ToLowerInvariant(), "public", StringComparison.InvariantCultureIgnoreCase);
                 if (isClass && isPublic && symbol.IsStatic && symbol.MethodKind == MethodKind.Ordinary)
                 {
                     var className = cls.Name;
@@ -59,8 +59,8 @@ namespace MockableStaticGenerator
                     var callableMethodSignature = symbol.GetCallableSignatureText();
                     var obsoleteAttribute = symbol.GetAttributes().FirstOrDefault(x => x.ToString().StartsWith("System.ObsoleteAttribute("))?.ToString();
 
-                    var interfaceSource = $"\tpublic partial interface I{wrapperClassName}{classTypeParameters} {constraintClauses} {{";
-                    var classSource = $"\tpublic partial class {wrapperClassName}{classTypeParameters} {baseList} {constraintClauses} {{";
+                    var interfaceSource = $"\tpublic interface I{wrapperClassName}{classTypeParameters} {constraintClauses} {{";
+                    var classSource = $"\tpublic class {wrapperClassName}{classTypeParameters} {baseList} {constraintClauses} {{";
 
 
                     if (!_interfaces.Contains(interfaceSource))
@@ -76,13 +76,8 @@ namespace MockableStaticGenerator
 
                     if (!_classes.Contains(methodSignature))
                     {
-                        if (!string.IsNullOrEmpty(obsoleteAttribute))
-                        {
-                            _classes.Add($"\t\t[{obsoleteAttribute}]");
-                        }
-                        _classes.Add($"\t\tpublic {methodSignature} {{");
-                        _classes.Add($"\t\t\t{returnKeyword}{classNameWithNs}.{callableMethodSignature};");
-                        _classes.Add("\t\t}");
+                        var obs = !string.IsNullOrEmpty(obsoleteAttribute) ? $"\t\t[{obsoleteAttribute}]" : "\t\t";
+                        _classes.Add($"{obs} public {methodSignature} {{ {returnKeyword}{classNameWithNs}.{callableMethodSignature}; }}");
                     }
                 }
             }
@@ -95,18 +90,29 @@ namespace MockableStaticGenerator
             if (context.SyntaxReceiver is not SyntaxReceiver receiver)
                 return;
 
-            CSharpParseOptions options = (context.Compilation as CSharpCompilation).SyntaxTrees[0].Options as CSharpParseOptions;
+            CSharpParseOptions options = (context.Compilation as CSharpCompilation)?.SyntaxTrees[0].Options as CSharpParseOptions;
             Compilation compilation = context.Compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(SourceText.From(Constants.MockableStaticAttribute, Encoding.UTF8), options));
             INamedTypeSymbol attributeSymbol = compilation.GetTypeByMetadataName($"System.{nameof(Constants.MockableStaticAttribute)}");
 
-            var sources = new StringBuilder();
+            var sources = new HashSet<string>();
+            sources.Clear();
             var assemblyName = "";
             foreach (var cls in receiver.Classes)
             {
+                if (_interfaces.Count > 0)
+                {
+                    _interfaces.Add($"\t}}");
+                }
+                if (_classes.Count > 0)
+                {
+                    _classes.Add($"\t}}");
+                }
+
+
                 SemanticModel model = compilation.GetSemanticModel(cls.SyntaxTree);
                 var clsSymbol = model.GetDeclaredSymbol(cls);
 
-                var attr = clsSymbol.GetAttributes().FirstOrDefault(ad => ad.AttributeClass.Equals(attributeSymbol, SymbolEqualityComparer.Default));
+                var attr = clsSymbol.GetAttributes().FirstOrDefault(ad => ad.AttributeClass != null && ad.AttributeClass.Equals(attributeSymbol, SymbolEqualityComparer.Default));
 
                 if (attr == null) continue;
                 var isParameterlessCtor = attr?.ConstructorArguments.Length == 0;
@@ -126,8 +132,8 @@ namespace MockableStaticGenerator
                     var wrapperClassName = !className.Contains('<') ? className + "Wrapper" : className.Replace("<", "Wrapper<");
                     var classTypeParameters = cls.GetTypeParameters() ?? "";
                     var constraintClauses = cls.GetConstraintClauses() ?? "";
-                    sbInterface.AppendLine($"\tpublic partial interface I{wrapperClassName}{classTypeParameters} {constraintClauses} {{");
-                    sbClass.AppendLine($"\tpublic partial class {wrapperClassName}{classTypeParameters} {baseList} I{wrapperClassName}{classTypeParameters} {constraintClauses} {{");
+                    sbInterface.AppendLine($"\tpublic interface I{wrapperClassName}{classTypeParameters} {constraintClauses} {{");
+                    sbClass.AppendLine($"\tpublic class {wrapperClassName}{classTypeParameters} {baseList} I{wrapperClassName}{classTypeParameters} {constraintClauses} {{");
 
                     foreach (MethodDeclarationSyntax method in methods)
                     {
@@ -139,8 +145,7 @@ namespace MockableStaticGenerator
                         if (!sbClass.ToString().Contains(text))
                         {
                             var returnKeyword = method.ReturnsVoid() ? "" : "return ";
-                            var obsoleteAttrText = "";
-                            var isObsolete = method.TryGetObsoleteAttribute(out obsoleteAttrText);
+                            var isObsolete = method.TryGetObsoleteAttribute(out var obsoleteAttrText);
                             if (isObsolete)
                                 sbClass.AppendLine($"\t\t{obsoleteAttrText}");
 
@@ -155,20 +160,33 @@ namespace MockableStaticGenerator
                 }
                 else
                 {
-                    var ctor = ((INamedTypeSymbol)attr?.ConstructorArguments[0].Value);
-                    var assemblySymbol = ctor.ContainingAssembly.GlobalNamespace;
-                    assemblyName = ctor.ContainingAssembly.Identity.Name;
-                    var visitor = new MethodSymbolVisitor(ctor.ToDisplayString());
-                    visitor.Visit(assemblySymbol);
-                    sbInterface.AppendLine(_interfaces.Aggregate((a, b) => a + Environment.NewLine + b) + Environment.NewLine + "\t}");
-                    sbClass.AppendLine(_classes.Aggregate((a, b) => a + Environment.NewLine + b) + Environment.NewLine + "\t}");
+                    var ctor = (INamedTypeSymbol)attr?.ConstructorArguments[0].Value;
+                    if (ctor != null)
+                    {
+                        var assemblySymbol = ctor.ContainingAssembly.GlobalNamespace;
+                        assemblyName = ctor.ContainingAssembly.Identity.Name;
+                        var visitor = new MethodSymbolVisitor(ctor.ToDisplayString());
+                        visitor.Visit(assemblySymbol);
+                    }
+
+                    sbInterface.AppendLine(_interfaces.Distinct().Aggregate((a, b) => a + Environment.NewLine + b) + Environment.NewLine + "\t}");
+                    sbClass.AppendLine(_classes.Distinct().Aggregate((a, b) => a + Environment.NewLine + b) + Environment.NewLine + "\t}");
                 }
 
                 var interfaceWrapper = sbInterface.ToString();
                 var classWrapper = sbClass.ToString();
 
-                sources.AppendLine(interfaceWrapper);
-                sources.AppendLine(classWrapper);
+                sources.Add(interfaceWrapper);
+                sources.Add(classWrapper);
+            }
+
+            if (_interfaces[_interfaces.Count - 1].Trim() != "}")
+            {
+                _interfaces.Add($"\t}}");
+            }
+            if (_classes[_classes.Count - 1].Trim() != "}")
+            {
+                _classes.Add($"\t}}");
             }
 
             var defaultUsings = new StringBuilder();
@@ -179,20 +197,19 @@ namespace MockableStaticGenerator
             defaultUsings.AppendLine("using System.Threading.Tasks;");
             var usings = defaultUsings.ToString();
 
-            var src = sources.ToString();
+            var src = sources.TakeLast(2).Aggregate((x, y) => x + Environment.NewLine + y).ToString();
             var @namespace = new StringBuilder();
             @namespace.AppendLine(usings);
-            @namespace.AppendLine($"namespace {assemblyName}.MockableGenerated {{");
+            @namespace.AppendLine($"namespace MockableGenerated {{");
             @namespace.AppendLine(src);
             @namespace.Append("}");
             var result = @namespace.ToString();
-
-            context.AddSource($"{assemblyName}MockableGenerated", SourceText.From(result, Encoding.UTF8));
+            context.AddSource($"MockableGenerated", SourceText.From(result, Encoding.UTF8));
         }
 
         public void Initialize(GeneratorInitializationContext context)
         {
-            // System.Diagnostics.Debugger.Launch();
+            //System.Diagnostics.Debugger.Launch();
             context.RegisterForSyntaxNotifications(() => new SyntaxReceiver());
         }
 

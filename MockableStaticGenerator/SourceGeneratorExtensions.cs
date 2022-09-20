@@ -55,7 +55,10 @@ namespace Microsoft.CodeAnalysis
         {
             return methodDeclarationSyntax.ReturnType.ToFullString().Trim() == "void";
         }
-
+        internal static IEnumerable<T> TakeLast<T>(this IEnumerable<T> source, int n)
+        {
+            return source.Skip(Math.Max(0, source.Count() - n));
+        }
         internal static string GetSignatureText(this MethodDeclarationSyntax methodDeclarationSyntax)
         {
             var name = methodDeclarationSyntax.Identifier.ValueText;

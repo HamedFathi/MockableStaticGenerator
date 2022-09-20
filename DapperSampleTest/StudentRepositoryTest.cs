@@ -2,7 +2,7 @@ using DapperSample;
 using Moq;
 using System.Data;
 using Xunit;
-using Dapper.MockableGenerated;
+using MockableGenerated;
 
 namespace DapperSampleTest
 {

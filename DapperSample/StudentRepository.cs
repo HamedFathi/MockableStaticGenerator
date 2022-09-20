@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Data;
 using System;
-using Dapper.MockableGenerated;
+using MockableGenerated;
 
 namespace DapperSample
 {
